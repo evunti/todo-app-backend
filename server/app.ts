@@ -2,7 +2,14 @@ import express, { Request, Response } from "express";
 
 const app = express();
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log("Time:", Date.now());
+  next();
+});
+
 const PORT = 3001;
+
+// const appRouter = express.Router();
 
 const {
   getElementById,
@@ -24,14 +31,18 @@ const {
 
 //   res.json({ tasks });
 // });
+interface Task {
+  id: number;
+  title: string;
+  completed: boolean;
+}
 
-const tasks = [];
+const tasks: Task[] = [];
 seedElements(tasks, "tasks");
 
-app.get("/tasks", (req, res, next) => {
-  res.send(tasks);
-});
-app.get("/tasks/:id", (req, res, next) => {
+const taskRouter = express.Router();
+
+taskRouter.get("/:id", (req, res, next) => {
   const task = getElementById(req.params.id, tasks);
   if (task) {
     res.send(task);
@@ -40,17 +51,16 @@ app.get("/tasks/:id", (req, res, next) => {
   }
 });
 
-app.post("/tasks", (req, res, next) => {
-  const receivedTask = createElement("tasks", req.query);
+taskRouter.post("/", (req, res, next) => {
+  const receivedTask: Task = createElement("tasks", req.query);
   if (receivedTask) {
-    tasks.push(receivedTask);
     res.status(201).send(receivedTask);
   } else {
     res.status(400).send();
   }
 });
 
-app.put("/tasks/:id", (req, res, next) => {
+taskRouter.put("/:id", (req, res, next) => {
   const taskIndex = getIndexById(req.params.id, tasks);
   if (taskIndex !== -1) {
     updateElement(req.params.id, req.query, tasks);
@@ -60,8 +70,7 @@ app.put("/tasks/:id", (req, res, next) => {
   }
 });
 
-// Delete a single animal
-app.delete("/tasks/:id", (req, res, next) => {
+taskRouter.delete("/:id", (req, res, next) => {
   const taskIndex = getIndexById(req.params.id, tasks);
   if (taskIndex !== -1) {
     tasks.splice(taskIndex, 1);
@@ -71,9 +80,7 @@ app.delete("/tasks/:id", (req, res, next) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is listening on ${PORT}`);
-});
+app.use("/task", taskRouter);
 
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
